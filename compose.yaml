@@ -1,0 +1,43 @@
+services:
+  php:
+    build: docker/php
+    ports:
+      - "8000:80"
+    environment:
+      SERVER_NAME: ":80"
+      DATABASE_URL: "postgresql://nestegg:nestegg@db:5432/nestegg?serverVersion=16&charset=utf8"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      VITE_API_PROXY_TARGET: "http://php:80"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nestegg
+      POSTGRES_USER: nestegg
+      POSTGRES_PASSWORD: nestegg
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nestegg"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  dbdata:
