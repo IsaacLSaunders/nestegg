@@ -47,7 +47,7 @@ final class Projector
             $taxPaid = 0.0;
 
             $d = $a->drawdown;
-            if (null !== $d && $balance > 0.0 && $d->isActive($m, $a->deathMonthIndex)) {
+            if (null !== $d && $d->isActive($m, $a->deathMonthIndex)) {
                 $target = $d->monthlyAmountToday;
                 if ($d->inflationIndexed) {
                     $target *= (1 + $monthlyInflation) ** $m;
@@ -65,7 +65,7 @@ final class Projector
                 $netWithdrawal = $taxModel->netFromGross($a->accountType, $grossWithdrawal, $gainsFraction);
                 $taxPaid = $grossWithdrawal - $netWithdrawal;
 
-                if ($isBrokerage) {
+                if ($isBrokerage && $balance > 0.0) {
                     $basis -= $grossWithdrawal * ($basis / $balance);
                 }
                 $balance -= $grossWithdrawal;

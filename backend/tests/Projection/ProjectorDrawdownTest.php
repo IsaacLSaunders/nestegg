@@ -166,4 +166,16 @@ final class ProjectorDrawdownTest extends TestCase
         self::assertSame(0.0, $result->months[3]->grossWithdrawal);
         self::assertEqualsWithDelta(0.0, $result->summary->endingBalance, 0.01);
     }
+
+    public function testDrawdownFromEmptyAccountRecordsImmediateDepletion(): void
+    {
+        $result = (new Projector())->project($this->assumptions(
+            AccountType::RothIra,
+            0.0,
+            new DrawdownSchedule(100.0, DrawdownEntryMode::Gross, 0),
+        ));
+        self::assertSame(0, $result->summary->depletionMonthIndex);
+        self::assertSame(0.0, $result->months[0]->grossWithdrawal);
+        self::assertSame(0.0, $result->summary->endingBalance);
+    }
 }
