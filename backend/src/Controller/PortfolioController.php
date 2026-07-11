@@ -79,6 +79,16 @@ final class PortfolioController extends ApiController
         return new JsonResponse(null, 204);
     }
 
+    #[Route('/{id}/duplicate', name: 'api_portfolios_duplicate', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function duplicate(int $id): JsonResponse
+    {
+        $copy = $this->findOwnedOr404($id)->duplicate();
+        $this->em->persist($copy);
+        $this->em->flush();
+
+        return $this->apiJson($copy->toJson(), 201);
+    }
+
     private function findOwnedOr404(int $id): Portfolio
     {
         /** @var User $user */

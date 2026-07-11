@@ -295,6 +295,30 @@ class Account
         return $this;
     }
 
+    public function duplicate(): self
+    {
+        $clone = new self();
+        $clone->name = $this->name;
+        $clone->type = $this->type;
+        $clone->startingBalance = $this->startingBalance;
+        $clone->startingBasis = $this->startingBasis;
+        $clone->annualReturnRate = $this->annualReturnRate;
+        $clone->inflationRate = $this->inflationRate;
+        $clone->horizonYears = $this->horizonYears;
+        $clone->contributionMonthlyAmount = $this->contributionMonthlyAmount;
+        $clone->contributionEscalationRate = $this->contributionEscalationRate;
+        $clone->contributionStartsOn = $this->contributionStartsOn;
+        $clone->contributionEndsOn = $this->contributionEndsOn;
+        $clone->drawdownAmount = $this->drawdownAmount;
+        $clone->drawdownFrequency = $this->drawdownFrequency;
+        $clone->drawdownEntryMode = $this->drawdownEntryMode;
+        $clone->drawdownStartsOn = $this->drawdownStartsOn;
+        $clone->drawdownEndsOn = $this->drawdownEndsOn;
+        $clone->drawdownInflationIndexed = $this->drawdownInflationIndexed;
+
+        return $clone;
+    }
+
     /** @return array<string, mixed> */
     public function toJson(): array
     {

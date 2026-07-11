@@ -108,6 +108,20 @@ class Portfolio
         return $this;
     }
 
+    public function duplicate(): self
+    {
+        $clone = new self();
+        $clone->setOwner($this->owner)
+            ->setName($this->name.' (copy)')
+            ->setOrdinaryIncomeTaxRate($this->ordinaryIncomeTaxRate)
+            ->setCapitalGainsTaxRate($this->capitalGainsTaxRate);
+        foreach ($this->accounts as $account) {
+            $clone->addAccount($account->duplicate());
+        }
+
+        return $clone;
+    }
+
     /** @return array<string, mixed> */
     public function toJson(): array
     {
