@@ -18,6 +18,7 @@ make up        # build and start everything
 
 - App (Vite dev server, HMR): http://localhost:5173
 - API (FrankenPHP): http://localhost:8000/api/health
+- Postgres (host tools/GUIs): localhost:5433, db/user/password `nestegg`
 
 ## Common commands
 

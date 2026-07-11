@@ -26,7 +26,9 @@ front-shell: ## Shell into the frontend container
 db-shell: ## psql into the database
 	$(COMPOSE) exec db psql -U nestegg nestegg
 
-test: ## Run backend test suite
+test: ## Run backend test suite (bootstraps + migrates the test DB)
+	$(COMPOSE) exec php php bin/console -e test doctrine:database:create --if-not-exists
+	$(COMPOSE) exec php php bin/console -e test doctrine:migrations:migrate --no-interaction --allow-no-migration
 	$(COMPOSE) exec php php bin/phpunit
 
 test-front: ## Run frontend unit tests
