@@ -39,4 +39,20 @@ final class AuthController extends AbstractController
 
         return $this->json($user->toJson(), 201);
     }
+
+    #[Route('/login', name: 'api_auth_login', methods: ['POST'])]
+    public function login(): JsonResponse
+    {
+        // Handled by the json_login authenticator; only reached on success.
+        /** @var User $user */
+        $user = $this->getUser();
+
+        return $this->json($user->toJson());
+    }
+
+    #[Route('/logout', name: 'api_auth_logout', methods: ['POST'])]
+    public function logout(): never
+    {
+        throw new \LogicException('Intercepted by the logout key on the firewall.');
+    }
 }
