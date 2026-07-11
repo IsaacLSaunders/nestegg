@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\PortfolioRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PortfolioRepository::class)]
@@ -27,6 +29,15 @@ class Portfolio
 
     #[ORM\Column]
     private float $capitalGainsTaxRate = 0.15;
+
+    /** @var Collection<int, Account> */
+    #[ORM\OneToMany(targetEntity: Account::class, mappedBy: 'portfolio', orphanRemoval: true)]
+    private Collection $accounts;
+
+    public function __construct()
+    {
+        $this->accounts = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -81,6 +92,22 @@ class Portfolio
         return $this;
     }
 
+    /** @return Collection<int, Account> */
+    public function getAccounts(): Collection
+    {
+        return $this->accounts;
+    }
+
+    public function addAccount(Account $account): static
+    {
+        if (!$this->accounts->contains($account)) {
+            $this->accounts->add($account);
+            $account->setPortfolio($this);
+        }
+
+        return $this;
+    }
+
     /** @return array<string, mixed> */
     public function toJson(): array
     {
@@ -89,7 +116,7 @@ class Portfolio
             'name' => $this->name,
             'ordinaryIncomeTaxRate' => $this->ordinaryIncomeTaxRate,
             'capitalGainsTaxRate' => $this->capitalGainsTaxRate,
-            'accounts' => [],
+            'accounts' => array_map(static fn (Account $account): array => $account->toJson(), $this->accounts->toArray()),
         ];
     }
 }
