@@ -15,7 +15,7 @@
 - **Month-loop order of operations (fixed contract, documented in code):** (1) add contribution (basis += contribution for brokerage), (2) apply growth `balance *= 1+monthlyReturn`, (3) withdraw drawdown. Tests depend on this order.
 - Contribution escalation compounds annually: in month `m` (0-based from the contribution window start), the contribution is `monthlyAmount * (1+escalation)^floor(monthsSinceContributionStart/12)`.
 - Drawdown amount is entered in **today's dollars**; if `inflationIndexed`, the nominal target in month `m` is `amount * (1+monthlyInflation)^m` (indexing from projection start, not drawdown start). Weekly amounts are converted by the **controller** (×52/12) before reaching the engine — the engine only knows monthly.
-- Drawdown is active in month m iff `m >= startMonthIndex` AND (`endMonthIndex` null or `m <= endMonthIndex`) AND (`deathMonthIndex` null or `m <= deathMonthIndex`) AND balance > 0.
+- Drawdown is active in month m iff `m >= startMonthIndex` AND (`endMonthIndex` null or `m <= endMonthIndex`) AND (`deathMonthIndex` null or `m <= deathMonthIndex`) — **including when balance is 0** (the withdrawal is then 0 and depletion is recorded; this is what lets goal-seek reject the do-nothing solution). Division guards: gainsFraction and the basis reduction each require `balance > 0`.
 - Brokerage: `gainsFraction = max(0, (balance-basis)/balance)` computed BEFORE withdrawal; tax = `gross * gainsFraction * capitalGainsRate`; basis reduction `basis -= gross * basis/balance` before `balance -= gross`. Traditional 401k/IRA: tax = `gross * ordinaryIncomeTaxRate`. Roth/529/cash: tax = 0.
 - Net entry mode: gross is solved from the net target (`gross = net/(1-rate)` traditional, `gross = net/(1 - gainsFraction*capRate)` brokerage, `gross = net` untaxed). If balance can't cover the desired gross, withdraw everything that's left (partial month) and record depletion.
 - Depletion month = first month where the post-withdrawal balance ≤ 0.005 (engine floors balance at 0.0 thereafter; contributions may still resume growth — depletion month stays the FIRST such month).
@@ -1251,7 +1251,7 @@ git commit -m "feat: stateless POST /api/projection endpoint"
 - Consumes: Projector + assumptions (Tasks 1-2).
 - Produces:
   - `interface Goal { public function isSatisfiedBy(ProjectionResult $result): bool; }`
-  - `new DrawdownGoal(int $mustSurviveThroughMonthIndex)` — satisfied iff `depletionMonthIndex === null || depletionMonthIndex >= $mustSurviveThroughMonthIndex`.
+  - `new DrawdownGoal(int $mustSurviveThroughMonthIndex)` — satisfied iff `depletionMonthIndex === null || depletionMonthIndex > $mustSurviveThroughMonthIndex` (strict: depletion AT the survive-through month may mean the final withdrawal was a near-total shortfall, which depletionMonthIndex alone cannot distinguish — so the solver requires surviving past it, over-requiring by at most ~one cent of monthly contribution).
   - `new TargetValueGoal(float $nominalTarget, int $atMonthIndex)` — satisfied iff `months[atMonthIndex].balance >= nominalTarget`.
   - `GoalSeeker::solve(ProjectionAssumptions $base, Goal $goal): GoalSeekResult` — finds the minimum contribution `monthlyAmount` (replacing `$base->contribution->monthlyAmount`, keeping window/escalation) that satisfies the goal.
   - `GoalSeekResult { public bool $attainable; public float $requiredMonthlyContribution; public ProjectionResult $projection; }` — when unattainable (cap 10,000,000/mo), `requiredMonthlyContribution` is `0.0` and `projection` is the base run.
@@ -1434,7 +1434,7 @@ final readonly class DrawdownGoal implements Goal
     {
         $depletion = $result->summary->depletionMonthIndex;
 
-        return null === $depletion || $depletion >= $this->mustSurviveThroughMonthIndex;
+        return null === $depletion || $depletion > $this->mustSurviveThroughMonthIndex;
     }
 }
 ```
