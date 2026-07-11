@@ -10,23 +10,12 @@ use App\Entity\User;
 use App\Repository\AccountRepository;
 use App\Repository\PortfolioRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
-final class AccountController extends AbstractController
+final class AccountController extends ApiController
 {
-    /**
-     * AbstractController::json() always forces 'json_encode_options' to
-     * JsonResponse::DEFAULT_ENCODING_OPTIONS in the serializer context, which
-     * overrides the serializer's built-in JSON_PRESERVE_ZERO_FRACTION default.
-     * Without this, a whole-number float like 1500.0 serializes as `1500`
-     * instead of `1500.0`. Re-add the flag explicitly so numeric fields keep
-     * their float shape in the response.
-     */
-    private const JSON_CONTEXT = ['json_encode_options' => JsonResponse::DEFAULT_ENCODING_OPTIONS | \JSON_PRESERVE_ZERO_FRACTION];
-
     public function __construct(
         private readonly AccountRepository $accounts,
         private readonly PortfolioRepository $portfolios,
@@ -51,13 +40,13 @@ final class AccountController extends AbstractController
         $this->em->persist($account);
         $this->em->flush();
 
-        return $this->json($account->toJson(), 201, [], self::JSON_CONTEXT);
+        return $this->apiJson($account->toJson(), 201);
     }
 
     #[Route('/api/accounts/{id}', name: 'api_accounts_get', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function get(int $id): JsonResponse
     {
-        return $this->json($this->findOwnedOr404($id)->toJson(), 200, [], self::JSON_CONTEXT);
+        return $this->apiJson($this->findOwnedOr404($id)->toJson());
     }
 
     #[Route('/api/accounts/{id}', name: 'api_accounts_update', methods: ['PUT'], requirements: ['id' => '\d+'])]
@@ -67,7 +56,7 @@ final class AccountController extends AbstractController
         $this->apply($account, $input);
         $this->em->flush();
 
-        return $this->json($account->toJson(), 200, [], self::JSON_CONTEXT);
+        return $this->apiJson($account->toJson());
     }
 
     #[Route('/api/accounts/{id}', name: 'api_accounts_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]

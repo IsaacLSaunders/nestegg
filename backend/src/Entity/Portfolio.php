@@ -31,7 +31,7 @@ class Portfolio
     private float $capitalGainsTaxRate = 0.15;
 
     /** @var Collection<int, Account> */
-    #[ORM\OneToMany(targetEntity: Account::class, mappedBy: 'portfolio', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: Account::class, mappedBy: 'portfolio', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $accounts;
 
     public function __construct()

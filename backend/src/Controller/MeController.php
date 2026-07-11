@@ -7,13 +7,12 @@ namespace App\Controller;
 use App\Dto\UpdateMeRequest;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/me')]
-final class MeController extends AbstractController
+final class MeController extends ApiController
 {
     #[Route('', name: 'api_me', methods: ['GET'])]
     public function me(): JsonResponse
@@ -21,7 +20,7 @@ final class MeController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        return $this->json($user->toJson());
+        return $this->apiJson($user->toJson());
     }
 
     #[Route('', name: 'api_me_update', methods: ['PATCH'])]
@@ -40,6 +39,6 @@ final class MeController extends AbstractController
         }
         $em->flush();
 
-        return $this->json($user->toJson());
+        return $this->apiJson($user->toJson());
     }
 }

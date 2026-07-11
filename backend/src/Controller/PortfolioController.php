@@ -9,13 +9,12 @@ use App\Entity\Portfolio;
 use App\Entity\User;
 use App\Repository\PortfolioRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/api/portfolios')]
-final class PortfolioController extends AbstractController
+final class PortfolioController extends ApiController
 {
     public function __construct(
         private readonly PortfolioRepository $portfolios,
@@ -29,7 +28,7 @@ final class PortfolioController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        return $this->json(array_map(
+        return $this->apiJson(array_map(
             static fn (Portfolio $p): array => $p->toJson(),
             $this->portfolios->findOwnedBy($user),
         ));
@@ -50,13 +49,13 @@ final class PortfolioController extends AbstractController
         $this->em->persist($portfolio);
         $this->em->flush();
 
-        return $this->json($portfolio->toJson(), 201);
+        return $this->apiJson($portfolio->toJson(), 201);
     }
 
     #[Route('/{id}', name: 'api_portfolios_get', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function get(int $id): JsonResponse
     {
-        return $this->json($this->findOwnedOr404($id)->toJson());
+        return $this->apiJson($this->findOwnedOr404($id)->toJson());
     }
 
     #[Route('/{id}', name: 'api_portfolios_update', methods: ['PUT'], requirements: ['id' => '\d+'])]
@@ -68,7 +67,7 @@ final class PortfolioController extends AbstractController
             ->setCapitalGainsTaxRate($input->capitalGainsTaxRate);
         $this->em->flush();
 
-        return $this->json($portfolio->toJson());
+        return $this->apiJson($portfolio->toJson());
     }
 
     #[Route('/{id}', name: 'api_portfolios_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]

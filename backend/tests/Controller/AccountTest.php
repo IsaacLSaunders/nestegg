@@ -65,7 +65,10 @@ final class AccountTest extends ApiTestCase
         self::assertTrue($data['drawdown']['inflationIndexed']);
 
         $client->jsonRequest('GET', "/api/portfolios/{$pid}");
-        self::assertCount(1, $this->json($client)['accounts']);
+        $accounts = $this->json($client)['accounts'];
+        self::assertCount(1, $accounts);
+        // Regression: nested account floats must keep their zero fraction too.
+        self::assertSame(1500.0, $accounts[0]['contribution']['monthlyAmount']);
     }
 
     public function testBrokerageAccountKeepsStartingBasis(): void
