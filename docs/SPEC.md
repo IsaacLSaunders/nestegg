@@ -44,7 +44,7 @@ No annual dividend tax drag in v1 (approximate by shaving ROI).
 
 ## Goal-seek view
 
-Mirrored UI of the projection view. Inputs: same assumption set, plus a target — either a drawdown amount (weekly/monthly/yearly, gross or net) or a total account value — paired with the drawdown start. Output: required monthly/yearly contribution.
+Mirrored UI of the projection view. Inputs: same assumption set, plus a target — either a drawdown amount (weekly/monthly, gross or net — matching the drawdown frequencies the engine supports) or a total account value — paired with the drawdown start. Output: required monthly/yearly contribution.
 
 - Drawdown-amount goals must be sustainable until the explicit drawdown end if set, else death age (account depletes to ~zero at horizon).
 - Total-value-at-date goals are fully determined (covers one-time expenses like a college fund).
