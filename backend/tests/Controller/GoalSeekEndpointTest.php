@@ -48,8 +48,9 @@ final class GoalSeekEndpointTest extends ApiTestCase
         self::assertTrue($data['attainable']);
         self::assertEqualsWithDelta(500.0, $data['requiredMonthlyContribution'], 1.0);
         self::assertEqualsWithDelta($data['requiredMonthlyContribution'] * 12, $data['requiredYearlyContribution'], 0.01);
-        // Exactly-solved contribution may deplete precisely at the drawdown end month — both outcomes satisfy the goal.
-        self::assertContains($data['projection']['summary']['depletionDate'], [null, '2041-06']);
+        // DrawdownGoal uses a strict inequality (depletion > mustSurviveThroughMonthIndex), so a
+        // solved contribution never depletes within the window — only "never depletes" satisfies it.
+        self::assertNull($data['projection']['summary']['depletionDate']);
         self::assertCount(180, $data['projection']['months']);
     }
 
@@ -78,6 +79,28 @@ final class GoalSeekEndpointTest extends ApiTestCase
         $payload = $this->payload(['kind' => 'drawdown']);
         $payload['account']['drawdown'] = ['amount' => null];
         $client = $this->createAuthenticatedClient('nodraw@example.com');
+        $client->jsonRequest('POST', '/api/goal-seek', $payload);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testDrawdownWindowStartsOutsideHorizonRejected(): void
+    {
+        $payload = $this->payload(['kind' => 'drawdown']);
+        $payload['account']['horizonYears'] = 2;
+        $payload['account']['drawdown']['startsOn'] = '2050-01-01';
+        $payload['account']['drawdown']['endsOn'] = '2050-06-01';
+        $client = $this->createAuthenticatedClient('drawdown-outside-horizon@example.com');
+        $client->jsonRequest('POST', '/api/goal-seek', $payload);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testDeathBeforeDrawdownStartRejected(): void
+    {
+        $payload = $this->payload(['kind' => 'drawdown']);
+        $payload['birthDate'] = '1940-01-01';
+        $payload['deathAge'] = 80;
+        // Death falls at 2020-01, well before the drawdown starts 2036-07.
+        $client = $this->createAuthenticatedClient('death-before-drawdown@example.com');
         $client->jsonRequest('POST', '/api/goal-seek', $payload);
         self::assertResponseStatusCodeSame(422);
     }

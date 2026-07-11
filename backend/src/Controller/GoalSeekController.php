@@ -60,6 +60,12 @@ final class GoalSeekController extends ApiController
             if (!$hasDrawdown) {
                 throw new UnprocessableEntityHttpException('A drawdown goal requires the account to define a drawdown amount and start.');
             }
+            if ($drawdownStart >= $horizonMonths) {
+                throw new UnprocessableEntityHttpException('The drawdown window starts outside the projection horizon — extend horizonYears or move the drawdown start.');
+            }
+            if (null !== $deathMonthIndex && $deathMonthIndex < $drawdownStart) {
+                throw new UnprocessableEntityHttpException('The assumed death age falls before the drawdown starts.');
+            }
             $surviveThrough = $drawdownEnd ?? $deathMonthIndex ?? ($horizonMonths - 1);
 
             return new DrawdownGoal(min($surviveThrough, $horizonMonths - 1));

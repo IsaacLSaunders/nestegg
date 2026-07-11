@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Dto\AccountInput;
 use App\Dto\ProjectionRequest;
 use App\Enum\DrawdownFrequency;
 use App\Projection\ContributionSchedule;
@@ -56,7 +55,7 @@ final class ProjectionController extends ApiController
         );
 
         $drawdown = null;
-        if (null !== $account->drawdown->amount && null !== $account->drawdown->startsOn) {
+        if (null !== $account->drawdown->amount && $account->drawdown->amount > 0 && null !== $account->drawdown->startsOn) {
             $monthlyAmount = DrawdownFrequency::Weekly === $account->drawdown->frequency
                 ? $account->drawdown->amount * 52 / 12
                 : $account->drawdown->amount;
@@ -94,6 +93,11 @@ final class ProjectionController extends ApiController
     public static function serialize(ProjectionResult $result, \DateTimeImmutable $start, float $annualInflationRate): array
     {
         $monthlyInflation = (1 + $annualInflationRate) ** (1 / 12) - 1;
+        // Two deflation exponents are used deliberately: balances are point-in-time snapshots
+        // taken after month `index` has elapsed, so they deflate by ^(index+1); flows (contribution,
+        // withdrawals, tax) are valued at their in-month occurrence, so they deflate by ^index. With
+        // this convention an inflation-indexed withdrawal's real value stays constant at the amount
+        // entered in today's dollars.
         $months = [];
         foreach ($result->months as $m) {
             $months[] = [
@@ -103,9 +107,13 @@ final class ProjectionController extends ApiController
                 'realBalance' => round($m->balance / (1 + $monthlyInflation) ** ($m->index + 1), 2),
                 'basis' => round($m->basis, 2),
                 'contribution' => round($m->contribution, 2),
+                'realContribution' => round($m->contribution / (1 + $monthlyInflation) ** $m->index, 2),
                 'grossWithdrawal' => round($m->grossWithdrawal, 2),
+                'realGrossWithdrawal' => round($m->grossWithdrawal / (1 + $monthlyInflation) ** $m->index, 2),
                 'netWithdrawal' => round($m->netWithdrawal, 2),
+                'realNetWithdrawal' => round($m->netWithdrawal / (1 + $monthlyInflation) ** $m->index, 2),
                 'taxPaid' => round($m->taxPaid, 2),
+                'realTaxPaid' => round($m->taxPaid / (1 + $monthlyInflation) ** $m->index, 2),
             ];
         }
 
