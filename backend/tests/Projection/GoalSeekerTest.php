@@ -105,6 +105,18 @@ final class GoalSeekerTest extends TestCase
         self::assertSame(0.0, $result->requiredMonthlyContribution);
     }
 
+    public function testAttainableGoalBetweenDoublingOvershootAndCap(): void
+    {
+        // Doubling from 100 reaches 6,553,600 then must clamp to the 10M cap rather than
+        // jump past it: an 8M/mo requirement is attainable and must be found.
+        $result = (new GoalSeeker())->solve(
+            $this->base(null, 1),
+            new TargetValueGoal(8000000.0, 0),
+        );
+        self::assertTrue($result->attainable);
+        self::assertEqualsWithDelta(8000000.0, $result->requiredMonthlyContribution, 1.0);
+    }
+
     public function testZeroContributionSufficientWhenGoalAlreadyMet(): void
     {
         $base = new ProjectionAssumptions(

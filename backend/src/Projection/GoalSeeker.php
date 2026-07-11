@@ -30,10 +30,10 @@ final class GoalSeeker
         $lo = 0.0;
         $hi = 100.0;
         while (!$goal->isSatisfiedBy($run($hi))) {
-            $hi *= 2;
-            if ($hi > self::CONTRIBUTION_CAP) {
+            if ($hi >= self::CONTRIBUTION_CAP) {
                 return new GoalSeekResult(false, 0.0, $zeroResult);
             }
+            $hi = min($hi * 2, self::CONTRIBUTION_CAP);
         }
 
         while ($hi - $lo > self::TOLERANCE) {
@@ -45,7 +45,15 @@ final class GoalSeeker
             }
         }
 
-        return new GoalSeekResult(true, round($hi, 2), $run(round($hi, 2)));
+        // Round UP to the cent so the returned contribution provably satisfies the goal.
+        $final = ceil($hi * 100) / 100;
+        $finalRun = $run($final);
+        if (!$goal->isSatisfiedBy($finalRun)) {
+            $final = $hi;
+            $finalRun = $run($hi);
+        }
+
+        return new GoalSeekResult(true, round($final, 2), $finalRun);
     }
 
     private function withContribution(ProjectionAssumptions $a, float $monthlyAmount): ProjectionAssumptions

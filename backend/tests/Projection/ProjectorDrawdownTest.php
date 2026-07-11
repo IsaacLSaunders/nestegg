@@ -178,4 +178,21 @@ final class ProjectorDrawdownTest extends TestCase
         self::assertSame(0.0, $result->months[0]->grossWithdrawal);
         self::assertSame(0.0, $result->summary->endingBalance);
     }
+
+    public function testBrokerageDrainedByDrawdownKeepsBasisFinite(): void
+    {
+        // Balance 100, basis 50, 100/mo gross: month 0 drains to 0 (basis -= 100*(50/100) = 0.0).
+        // Months 1-2 stay active with zero balance; the basis-reduction division must be guarded.
+        $result = (new Projector())->project($this->assumptions(
+            AccountType::Brokerage,
+            100.0,
+            new DrawdownSchedule(100.0, DrawdownEntryMode::Gross, 0),
+            startingBasis: 50.0,
+            horizonMonths: 3,
+        ));
+        self::assertSame(0, $result->summary->depletionMonthIndex);
+        self::assertSame(0.0, $result->months[1]->grossWithdrawal);
+        self::assertFalse(is_nan($result->months[1]->basis));
+        self::assertEqualsWithDelta(0.0, $result->months[1]->basis, 0.01);
+    }
 }
