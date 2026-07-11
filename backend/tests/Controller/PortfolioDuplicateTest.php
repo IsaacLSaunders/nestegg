@@ -55,4 +55,22 @@ final class PortfolioDuplicateTest extends ApiTestCase
         $bob->jsonRequest('POST', "/api/portfolios/{$pid}/duplicate");
         self::assertResponseStatusCodeSame(404);
     }
+
+    public function testDuplicateClampsLongNameToFitColumn(): void
+    {
+        $client = $this->createAuthenticatedClient();
+        $longName = str_repeat('x', 120);
+        $client->jsonRequest('POST', '/api/portfolios', [
+            'name' => $longName,
+            'ordinaryIncomeTaxRate' => 0.22,
+            'capitalGainsTaxRate' => 0.15,
+        ]);
+        $pid = $this->json($client)['id'];
+
+        $client->jsonRequest('POST', "/api/portfolios/{$pid}/duplicate");
+        self::assertResponseStatusCodeSame(201);
+        $copy = $this->json($client);
+        self::assertLessThanOrEqual(120, mb_strlen($copy['name']));
+        self::assertStringEndsWith(' (copy)', $copy['name']);
+    }
 }

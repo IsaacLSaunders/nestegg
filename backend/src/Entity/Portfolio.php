@@ -32,6 +32,7 @@ class Portfolio
 
     /** @var Collection<int, Account> */
     #[ORM\OneToMany(targetEntity: Account::class, mappedBy: 'portfolio', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['id' => 'ASC'])]
     private Collection $accounts;
 
     public function __construct()
@@ -112,7 +113,7 @@ class Portfolio
     {
         $clone = new self();
         $clone->setOwner($this->owner)
-            ->setName($this->name.' (copy)')
+            ->setName(mb_substr($this->name, 0, 113).' (copy)')
             ->setOrdinaryIncomeTaxRate($this->ordinaryIncomeTaxRate)
             ->setCapitalGainsTaxRate($this->capitalGainsTaxRate);
         foreach ($this->accounts as $account) {

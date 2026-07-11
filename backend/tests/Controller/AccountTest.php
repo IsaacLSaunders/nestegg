@@ -131,4 +131,17 @@ final class AccountTest extends ApiTestCase
         $client->jsonRequest('POST', "/api/portfolios/{$pid}/accounts", $payload);
         self::assertResponseStatusCodeSame(422);
     }
+
+    public function testDrawdownAmountWithoutStartDateIsRejected(): void
+    {
+        $client = $this->createAuthenticatedClient();
+        $pid = $this->createPortfolio($client);
+
+        $payload = $this->accountPayload();
+        $payload['drawdown']['amount'] = 4000.0;
+        $payload['drawdown']['startsOn'] = null;
+        $payload['drawdown']['endsOn'] = null;
+        $client->jsonRequest('POST', "/api/portfolios/{$pid}/accounts", $payload);
+        self::assertResponseStatusCodeSame(422);
+    }
 }

@@ -8,6 +8,10 @@ use App\Enum\DrawdownEntryMode;
 use App\Enum\DrawdownFrequency;
 use Symfony\Component\Validator\Constraints as Assert;
 
+#[Assert\Expression(
+    "this.amount === null or this.startsOn !== null",
+    message: "startsOn is required when a drawdown amount is set.",
+)]
 final readonly class DrawdownInput
 {
     public function __construct(
