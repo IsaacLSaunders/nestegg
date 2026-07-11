@@ -1,0 +1,3 @@
+# Engine computes in nominal dollars; today's-dollars is a display transform
+
+The engine models actual future (nominal) dollar amounts. Inflation is applied two ways: drawdown amounts are entered in today's dollars and indexed upward each year by default (per-account switch to disable), and the UI offers a toggle that deflates any displayed series back to today's dollars. We rejected the "real rate of return" shortcut (ROI minus inflation, everything in present dollars) because it can't show actual future balances and breaks down when progressive tax brackets — which exist in nominal space — are added later.
