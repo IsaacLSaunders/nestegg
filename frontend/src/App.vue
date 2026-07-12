@@ -17,7 +17,7 @@ async function logout() {
       <RouterLink to="/" class="brand">Nest<em>egg</em></RouterLink>
       <nav>
         <template v-if="auth.user">
-          <RouterLink to="/">Portfolios</RouterLink>
+          <RouterLink to="/portfolios">Portfolios</RouterLink>
           <span class="muted small">{{ auth.user.email }}</span>
           <button class="btn-link" @click="logout">Sign out</button>
         </template>

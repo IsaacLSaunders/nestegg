@@ -16,7 +16,7 @@ async function submit() {
   busy.value = true
   try {
     await auth.login(email.value, password.value)
-    router.push('/')
+    router.push('/portfolios')
   } catch (e) {
     error.value = e instanceof ApiError && e.status === 401 ? 'Wrong email or password.' : 'Login failed — try again.'
   } finally {

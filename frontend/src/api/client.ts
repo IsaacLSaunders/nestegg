@@ -21,7 +21,12 @@ interface ViolationItem {
   title: string
 }
 
-export async function api<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function api<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  opts?: { silentUnauthorized?: boolean },
+): Promise<T> {
   const init: RequestInit & { headers: Record<string, string> } = {
     method,
     credentials: 'same-origin',
@@ -37,7 +42,7 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
 
   const data: Record<string, unknown> = await res.json().catch(() => ({}))
   if (!res.ok) {
-    if (res.status === 401) onUnauthorized()
+    if (res.status === 401 && !opts?.silentUnauthorized) onUnauthorized()
     const violations: Record<string, string> = {}
     if (Array.isArray(data.violations)) {
       for (const v of data.violations as ViolationItem[]) {

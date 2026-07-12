@@ -9,7 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchMe(): Promise<void> {
     try {
-      user.value = await api<User>('GET', '/api/me')
+      user.value = await api<User>('GET', '/api/me', undefined, { silentUnauthorized: true })
     } catch {
       user.value = null
     } finally {

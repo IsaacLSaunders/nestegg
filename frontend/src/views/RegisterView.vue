@@ -25,7 +25,7 @@ async function submit() {
       birthDate: birthDate.value,
       deathAge: deathAge.value,
     })
-    router.push('/')
+    router.push('/portfolios')
   } catch (e) {
     if (e instanceof ApiError) {
       violations.value = e.violations
