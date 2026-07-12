@@ -5,7 +5,15 @@ import { money, moneyCompact, monthLabel, ageAt } from './format'
 
 const AXIS_TEXT = { color: INK_FAINT, fontFamily: 'IBM Plex Mono', fontSize: 11 }
 
+// Target roughly this many year labels across the x-axis; a long horizon skips more years per label
+// so labels never crowd together regardless of chart width.
+const TARGET_YEAR_LABELS = 10
+
 function baseOption(dates: string[], birthDate: string | null): EChartsOption {
+  const startYear = dates.length > 0 ? Number((dates[0] ?? '0').slice(0, 4)) : 0
+  const totalYears = Math.max(1, dates.length / 12)
+  const strideYears = Math.max(1, Math.round(totalYears / TARGET_YEAR_LABELS))
+
   return {
     grid: { left: 64, right: 24, top: 28, bottom: 40 },
     xAxis: {
@@ -17,6 +25,8 @@ function baseOption(dates: string[], birthDate: string | null): EChartsOption {
         ...AXIS_TEXT,
         formatter: (value: string) => {
           if (!value.endsWith('-01')) return ''
+          const year = Number(value.slice(0, 4))
+          if ((year - startYear) % strideYears !== 0) return ''
           const age = ageAt(value, birthDate)
           return value.slice(0, 4) + (age === null ? '' : `\n${age}`)
         },
