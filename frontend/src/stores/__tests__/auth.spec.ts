@@ -2,13 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 vi.mock('@/api/client', () => ({
-  api: vi.fn(),
+  api: vi.fn<(method: string, path: string, body?: unknown, opts?: { silentUnauthorized?: boolean }) => Promise<unknown>>(),
   ApiError: class extends Error {},
-  setUnauthorizedHandler: vi.fn(),
+  setUnauthorizedHandler: vi.fn<(handler: () => void) => void>(),
 }))
 
 import { api } from '@/api/client'
 import { useAuthStore } from '../auth'
+import { usePortfoliosStore } from '../portfolios'
 
 const mockedApi = vi.mocked(api)
 const demoUser = { id: 1, email: 'a@b.c', birthDate: '1990-06-15', deathAge: 90 }
@@ -62,5 +63,20 @@ describe('auth store', () => {
     mockedApi.mockResolvedValueOnce({ status: 'logged out' })
     await store.logout()
     expect(store.user).toBeNull()
+  })
+
+  it('logout resets the portfolios store', async () => {
+    const authStore = useAuthStore()
+    const portfoliosStore = usePortfoliosStore()
+
+    mockedApi.mockResolvedValueOnce([{ id: 1, name: 'P1', ordinaryIncomeTaxRate: 0.22, capitalGainsTaxRate: 0.15, accounts: [] }, { id: 2, name: 'P2', ordinaryIncomeTaxRate: 0.22, capitalGainsTaxRate: 0.15, accounts: [] }])
+    await portfoliosStore.load()
+    expect(portfoliosStore.portfolios).toHaveLength(2)
+
+    mockedApi.mockResolvedValueOnce({ status: 'logged out' })
+    await authStore.logout()
+
+    expect(portfoliosStore.portfolios).toEqual([])
+    expect(portfoliosStore.loaded).toBe(false)
   })
 })

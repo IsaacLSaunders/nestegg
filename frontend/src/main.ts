@@ -13,6 +13,7 @@ import App from './App.vue'
 import router from './router'
 import { setUnauthorizedHandler } from './api/client'
 import { useAuthStore } from './stores/auth'
+import { usePortfoliosStore } from './stores/portfolios'
 
 const app = createApp(App)
 
@@ -22,6 +23,7 @@ app.use(router)
 setUnauthorizedHandler(() => {
   const auth = useAuthStore()
   auth.user = null
+  usePortfoliosStore().reset()
   if (router.currentRoute.value.name !== 'login') router.push({ name: 'login' })
 })
 

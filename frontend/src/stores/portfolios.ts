@@ -70,9 +70,15 @@ export const usePortfoliosStore = defineStore('portfolios', () => {
     }
   }
 
+  function reset(): void {
+    portfolios.value = []
+    loaded.value = false
+  }
+
   return {
     portfolios, loaded, load, byId, accountById,
     create, update, remove, duplicate,
     createAccount, updateAccount, removeAccount,
+    reset,
   }
 })

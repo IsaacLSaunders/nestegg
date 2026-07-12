@@ -21,7 +21,13 @@ const settingsIncomeRate = ref(0.22)
 const settingsGainsRate = ref(0.15)
 
 onMounted(async () => {
-  if (!store.loaded) await store.load()
+  if (!store.loaded) {
+    try {
+      await store.load()
+    } catch {
+      error.value = 'Could not load portfolio.'
+    }
+  }
   syncSettings()
 })
 
@@ -62,7 +68,13 @@ async function saveAccount(input: AccountInput) {
 }
 
 async function removeAccount(a: Account) {
-  if (confirm(`Delete account “${a.name}”?`)) await store.removeAccount(a.id)
+  if (!confirm(`Delete account “${a.name}”?`)) return
+  error.value = ''
+  try {
+    await store.removeAccount(a.id)
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Could not delete account.'
+  }
 }
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })

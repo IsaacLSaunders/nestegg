@@ -42,6 +42,14 @@ const form = reactive<AccountInput>({
 
 const hasDrawdown = ref(form.drawdown.amount !== null)
 
+function toFiniteNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+function toFiniteOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
 function submit() {
   const payload: AccountInput = JSON.parse(JSON.stringify(form))
   if (!hasDrawdown.value) {
@@ -52,6 +60,13 @@ function submit() {
     if (payload.drawdown[key] === '') payload.drawdown[key] = null
   }
   if (payload.type !== 'brokerage') payload.startingBasis = null
+
+  payload.startingBalance = toFiniteNumber(payload.startingBalance, 0)
+  payload.horizonYears = toFiniteNumber(payload.horizonYears, 40)
+  payload.contribution.monthlyAmount = toFiniteNumber(payload.contribution.monthlyAmount, 0)
+  payload.startingBasis = toFiniteOrNull(payload.startingBasis)
+  payload.drawdown.amount = toFiniteOrNull(payload.drawdown.amount)
+
   emit('save', payload)
 }
 </script>

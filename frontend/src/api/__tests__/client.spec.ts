@@ -56,7 +56,7 @@ describe('api client', () => {
   })
 
   it('calls the unauthorized handler on 401', async () => {
-    const handler = vi.fn()
+    const handler = vi.fn<() => void>()
     setUnauthorizedHandler(handler)
     mockFetch(401, { error: 'Authentication required.' })
     await expect(api('GET', '/api/me')).rejects.toBeInstanceOf(ApiError)
@@ -64,7 +64,7 @@ describe('api client', () => {
   })
 
   it('skips the unauthorized handler on 401 when silentUnauthorized is set', async () => {
-    const handler = vi.fn()
+    const handler = vi.fn<() => void>()
     setUnauthorizedHandler(handler)
     mockFetch(401, { error: 'Authentication required.' })
     const err = await api('GET', '/api/me', undefined, { silentUnauthorized: true }).catch((e: unknown) => e)

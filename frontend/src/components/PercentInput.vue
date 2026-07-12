@@ -6,7 +6,10 @@ const emit = defineEmits<{ 'update:modelValue': [value: number] }>()
 
 const display = computed({
   get: () => Math.round(props.modelValue * 10000) / 100,
-  set: (v: number) => emit('update:modelValue', (Number.isFinite(v) ? v : 0) / 100),
+  set: (v: number) => {
+    if (!Number.isFinite(v)) return
+    emit('update:modelValue', v / 100)
+  },
 })
 </script>
 

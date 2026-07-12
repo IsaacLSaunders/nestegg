@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-vi.mock('@/api/client', () => ({ api: vi.fn() }))
+vi.mock('@/api/client', () => ({
+  api: vi.fn<(method: string, path: string, body?: unknown, opts?: { silentUnauthorized?: boolean }) => Promise<unknown>>(),
+}))
 
 import { api } from '@/api/client'
 import { usePortfoliosStore } from '../portfolios'
@@ -58,6 +60,17 @@ describe('portfolios store', () => {
     mockedApi.mockResolvedValueOnce(undefined)
     await store.remove(2)
     expect(store.portfolios.map((p) => p.id)).toEqual([1, 3])
+  })
+
+  it('reset clears the list and loaded flag', async () => {
+    mockedApi.mockResolvedValueOnce([pf(1), pf(2)])
+    const store = usePortfoliosStore()
+    await store.load()
+    expect(store.portfolios).toHaveLength(2)
+
+    store.reset()
+    expect(store.portfolios).toEqual([])
+    expect(store.loaded).toBe(false)
   })
 
   it('account mutations resync the owning portfolio', async () => {

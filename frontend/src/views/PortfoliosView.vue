@@ -11,7 +11,7 @@ const newName = ref('')
 const error = ref('')
 
 onMounted(() => {
-  if (!store.loaded) store.load()
+  if (!store.loaded) store.load().catch(() => { error.value = 'Could not load portfolios.' })
 })
 
 async function create() {
@@ -27,11 +27,22 @@ async function create() {
 }
 
 async function duplicate(id: number) {
-  await store.duplicate(id)
+  error.value = ''
+  try {
+    await store.duplicate(id)
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Could not duplicate portfolio.'
+  }
 }
 
 async function remove(id: number, name: string) {
-  if (confirm(`Delete portfolio “${name}” and all its accounts?`)) await store.remove(id)
+  if (!confirm(`Delete portfolio “${name}” and all its accounts?`)) return
+  error.value = ''
+  try {
+    await store.remove(id)
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Could not delete portfolio.'
+  }
 }
 </script>
 

@@ -20,6 +20,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email: string, password: string): Promise<void> {
     user.value = await api<User>('POST', '/api/auth/login', { email, password })
     checked.value = true
+    const { usePortfoliosStore } = await import('./portfolios')
+    usePortfoliosStore().reset()
   }
 
   async function register(input: RegisterInput): Promise<void> {
@@ -30,6 +32,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout(): Promise<void> {
     await api('POST', '/api/auth/logout')
     user.value = null
+    const { usePortfoliosStore } = await import('./portfolios')
+    usePortfoliosStore().reset()
   }
 
   return { user, checked, fetchMe, login, register, logout }
