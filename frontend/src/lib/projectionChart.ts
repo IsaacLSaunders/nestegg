@@ -1,4 +1,4 @@
-import type { EChartsOption } from 'echarts'
+import type { EChartsOption, MarkAreaComponentOption, MarkLineComponentOption } from 'echarts'
 import type { ProjectionMonth } from '@/api/types'
 import { SERIES, INK, INK_SOFT, INK_FAINT, LINE, PAPER_RAISED, DANGER } from './palette'
 import { money, moneyCompact, monthLabel, ageAt } from './format'
@@ -52,16 +52,17 @@ export function buildProjectionOption(input: {
   const byDate = new Map(months.map((m) => [m.date, m]))
   const suffix = real ? " (today's $)" : ''
 
-  const markArea =
+  const markArea: MarkAreaComponentOption | undefined =
     input.drawdownStart === null
       ? undefined
       : {
           silent: true,
+          // COPPER (#b0521a) at 7% opacity
           itemStyle: { color: 'rgba(176, 82, 26, 0.07)' },
           data: [[{ xAxis: input.drawdownStart }, { xAxis: input.drawdownEnd ?? dates[dates.length - 1] }]],
         }
 
-  const markLine =
+  const markLine: MarkLineComponentOption | undefined =
     input.depletionDate === null
       ? undefined
       : {
@@ -71,10 +72,12 @@ export function buildProjectionOption(input: {
           data: [{ xAxis: input.depletionDate }],
         }
 
+  const base = baseOption(dates, input.birthDate)
+
   return {
-    ...baseOption(dates, input.birthDate),
+    ...base,
     tooltip: {
-      ...(baseOption(dates, input.birthDate).tooltip as object),
+      ...(base.tooltip as object),
       formatter: (params: unknown) => {
         const p = (params as { axisValue?: string }[] | undefined)?.[0]
         if (!p?.axisValue) return ''
@@ -90,11 +93,10 @@ export function buildProjectionOption(input: {
         return rows.filter(Boolean).join('<br/>')
       },
     },
-    // @ts-expect-error echarts MarkArea/MarkLine types don't match the exact shape we're passing
     series: [
       {
         name: `Balance${suffix}`,
-        type: 'line',
+        type: 'line' as const,
         data: balances,
         showSymbol: false,
         lineStyle: { color: SERIES[0], width: 2 },
