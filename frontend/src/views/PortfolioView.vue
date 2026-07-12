@@ -3,9 +3,14 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePortfoliosStore } from '@/stores/portfolios'
 import { ApiError } from '@/api/client'
-import type { Account, AccountInput } from '@/api/types'
+import type { Account, AccountInput, PortfolioProjectionRequest, PortfolioProjectionResponse } from '@/api/types'
+import { useAuthStore } from '@/stores/auth'
+import { toAccountInput } from '@/lib/accountPayload'
+import { useDebouncedPost } from '@/lib/useDebouncedPost'
+import { buildPortfolioOption } from '@/lib/projectionChart'
 import AccountForm from '@/components/AccountForm.vue'
 import PercentInput from '@/components/PercentInput.vue'
+import LedgerChart from '@/components/LedgerChart.vue'
 
 const route = useRoute()
 const store = usePortfoliosStore()
@@ -19,6 +24,55 @@ const settingsOpen = ref(false)
 const settingsName = ref('')
 const settingsIncomeRate = ref(0.22)
 const settingsGainsRate = ref(0.15)
+
+const auth = useAuthStore()
+const real = ref(false)
+const stacked = ref(false)
+
+function accountShape(a: Account): AccountInput {
+  const input: AccountInput = {
+    name: a.name,
+    type: a.type,
+    startingBalance: a.startingBalance,
+    startingBasis: a.startingBasis,
+    annualReturnRate: a.annualReturnRate,
+    inflationRate: a.inflationRate,
+    horizonYears: a.horizonYears,
+    contribution: a.contribution,
+    drawdown: a.drawdown,
+  }
+  return toAccountInput(input, input.drawdown.amount !== null)
+}
+
+const overviewPayload = computed<PortfolioProjectionRequest | null>(() => {
+  if (!portfolio.value || portfolio.value.accounts.length === 0) return null
+  return {
+    accounts: portfolio.value.accounts.map(accountShape),
+    taxes: {
+      ordinaryIncomeTaxRate: portfolio.value.ordinaryIncomeTaxRate,
+      capitalGainsTaxRate: portfolio.value.capitalGainsTaxRate,
+    },
+    birthDate: auth.user?.birthDate ?? null,
+    deathAge: auth.user?.deathAge ?? null,
+    startsOn: null,
+  }
+})
+
+const overview = useDebouncedPost<PortfolioProjectionRequest, PortfolioProjectionResponse>(
+  '/api/projection/portfolio',
+  overviewPayload,
+)
+
+const overviewOption = computed(() => {
+  if (!overview.data.value) return null
+  return buildPortfolioOption({
+    accounts: overview.data.value.accounts,
+    total: overview.data.value.total.months,
+    real: real.value,
+    stacked: stacked.value,
+    birthDate: auth.user?.birthDate ?? null,
+  })
+})
 
 onMounted(async () => {
   if (!store.loaded) {
@@ -112,6 +166,18 @@ const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD
       </div>
     </form>
 
+    <div v-if="portfolio.accounts.length" class="card chart-card">
+      <div class="chart-head">
+        <h2>Overview <span v-if="overview.pending.value" class="muted small">computing…</span></h2>
+        <div class="chart-toggles">
+          <label class="toggle small"><input v-model="stacked" type="checkbox" /> Stacked</label>
+          <label class="toggle small"><input v-model="real" type="checkbox" /> Today's dollars</label>
+        </div>
+      </div>
+      <p v-if="overview.error.value" class="form-error">{{ overview.error.value }}</p>
+      <LedgerChart v-if="overviewOption" :option="overviewOption" />
+    </div>
+
     <div class="head-row">
       <h2>Accounts</h2>
       <button v-if="!addingAccount && !editingAccount" class="btn btn-primary" @click="addingAccount = true">
@@ -161,6 +227,10 @@ const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD
 <style scoped>
 .head-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 1rem; }
 .settings { max-width: 26rem; margin-bottom: 1rem; }
+.chart-card { margin-top: 1rem; }
+.chart-head { display: flex; justify-content: space-between; align-items: baseline; }
+.chart-toggles { display: flex; gap: 1rem; }
+.toggle { display: inline-flex; gap: 0.4rem; align-items: center; }
 .row { display: flex; gap: 0.5rem; }
 .accounts { width: 100%; border-collapse: collapse; background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); }
 .accounts th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); padding: 0.55rem 0.8rem; border-bottom: 2px solid var(--line); }
