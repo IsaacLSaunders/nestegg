@@ -105,3 +105,47 @@ export interface GoalSeekResponse {
   requiredYearlyContribution: number
   projection: ProjectionResponse
 }
+
+export interface TaxesInput {
+  ordinaryIncomeTaxRate: number
+  capitalGainsTaxRate: number
+}
+
+export interface ProjectionRequest {
+  account: AccountInput
+  taxes: TaxesInput
+  birthDate: string | null
+  deathAge: number | null
+  startsOn: string | null
+}
+
+export interface GoalInput {
+  kind: 'drawdown' | 'target_value'
+  amount?: number
+  atDate?: string
+  amountInTodaysDollars?: boolean
+}
+
+export interface GoalSeekRequest extends ProjectionRequest {
+  goal: GoalInput
+}
+
+export interface PortfolioProjectionRequest {
+  accounts: AccountInput[]
+  taxes: TaxesInput
+  birthDate: string | null
+  deathAge: number | null
+  startsOn: string | null
+}
+
+export interface PortfolioTotalMonth {
+  index: number
+  date: string
+  balance: number
+  realBalance: number
+}
+
+export interface PortfolioProjectionResponse {
+  accounts: ({ name: string } & ProjectionResponse)[]
+  total: { months: PortfolioTotalMonth[]; horizonMonths: number }
+}

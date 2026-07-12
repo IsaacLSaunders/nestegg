@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import type { Account, AccountInput, AccountType } from '@/api/types'
+import { toAccountInput } from '@/lib/accountPayload'
 import PercentInput from './PercentInput.vue'
 
-const props = defineProps<{ initial?: Account }>()
-const emit = defineEmits<{ save: [input: AccountInput]; cancel: [] }>()
+const props = defineProps<{
+  initial?: Account
+  lockContributionAmount?: boolean
+  hideActions?: boolean
+}>()
+const emit = defineEmits<{ save: [input: AccountInput]; cancel: []; change: [input: AccountInput] }>()
 
 const TYPE_LABELS: Record<AccountType, string> = {
   traditional_401k: 'Traditional 401k',
@@ -42,32 +47,14 @@ const form = reactive<AccountInput>({
 
 const hasDrawdown = ref(form.drawdown.amount !== null)
 
-function toFiniteNumber(value: unknown, fallback: number): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
-}
-
-function toFiniteOrNull(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
+watch(
+  [form, hasDrawdown],
+  () => emit('change', toAccountInput(form, hasDrawdown.value)),
+  { deep: true, immediate: true },
+)
 
 function submit() {
-  const payload: AccountInput = JSON.parse(JSON.stringify(form))
-  if (!hasDrawdown.value) {
-    payload.drawdown = { amount: null, frequency: 'monthly', entryMode: 'gross', startsOn: null, endsOn: null, inflationIndexed: true }
-  }
-  for (const key of ['startsOn', 'endsOn'] as const) {
-    if (payload.contribution[key] === '') payload.contribution[key] = null
-    if (payload.drawdown[key] === '') payload.drawdown[key] = null
-  }
-  if (payload.type !== 'brokerage') payload.startingBasis = null
-
-  payload.startingBalance = toFiniteNumber(payload.startingBalance, 0)
-  payload.horizonYears = toFiniteNumber(payload.horizonYears, 40)
-  payload.contribution.monthlyAmount = toFiniteNumber(payload.contribution.monthlyAmount, 0)
-  payload.startingBasis = toFiniteOrNull(payload.startingBasis)
-  payload.drawdown.amount = toFiniteOrNull(payload.drawdown.amount)
-
-  emit('save', payload)
+  emit('save', toAccountInput(form, hasDrawdown.value))
 }
 </script>
 
@@ -112,7 +99,15 @@ function submit() {
         <legend>Contributions</legend>
         <div class="field">
           <label for="cmonthly">Monthly amount ($)</label>
-          <input id="cmonthly" v-model.number="form.contribution.monthlyAmount" type="number" min="0" step="50" />
+          <input
+            id="cmonthly"
+            v-model.number="form.contribution.monthlyAmount"
+            type="number"
+            min="0"
+            step="50"
+            :disabled="lockContributionAmount"
+          />
+          <span v-if="lockContributionAmount" class="muted small">solved by goal seek</span>
         </div>
         <div class="field">
           <label for="cescalation">Annual escalation</label>
@@ -169,7 +164,7 @@ function submit() {
         <p v-else class="muted small">No withdrawals from this account.</p>
       </fieldset>
     </div>
-    <div class="row">
+    <div v-if="!hideActions" class="row">
       <button class="btn btn-primary" type="submit">Save account</button>
       <button class="btn" type="button" @click="emit('cancel')">Cancel</button>
     </div>
