@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/portfolios', name: 'portfolios', component: () => import('../views/PortfoliosView.vue') },
     { path: '/portfolios/:id(\\d+)', name: 'portfolio', component: () => import('../views/PortfolioView.vue') },
     { path: '/accounts/:id(\\d+)', name: 'account', component: () => import('../views/AccountView.vue') },
+    { path: '/accounts/:id(\\d+)/goal-seek', name: 'goal-seek', component: () => import('../views/GoalSeekView.vue') },
     { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { public: true } },
     { path: '/register', name: 'register', component: () => import('../views/RegisterView.vue'), meta: { public: true } },
   ],
