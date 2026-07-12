@@ -63,6 +63,16 @@ const overview = useDebouncedPost<PortfolioProjectionRequest, PortfolioProjectio
   overviewPayload,
 )
 
+const drawdownWindows = computed(() => {
+  if (!portfolio.value) return []
+  return portfolio.value.accounts
+    .filter((a) => a.drawdown.amount !== null && a.drawdown.startsOn !== null)
+    .map((a) => ({
+      start: a.drawdown.startsOn!.slice(0, 7),
+      end: a.drawdown.endsOn?.slice(0, 7) ?? null,
+    }))
+})
+
 const overviewOption = computed(() => {
   if (!overview.data.value) return null
   return buildPortfolioOption({
@@ -71,6 +81,7 @@ const overviewOption = computed(() => {
     real: real.value,
     stacked: stacked.value,
     birthDate: auth.user?.birthDate ?? null,
+    drawdownWindows: drawdownWindows.value,
   })
 })
 

@@ -5,9 +5,37 @@ import { money, moneyCompact, monthLabel, ageAt } from './format'
 
 const AXIS_TEXT = { color: INK_FAINT, fontFamily: 'IBM Plex Mono', fontSize: 11 }
 
+// COPPER (#b0521a) at 7% opacity — the shared drawdown-window shading treatment.
+const DRAWDOWN_AREA_COLOR = 'rgba(176, 82, 26, 0.07)'
+
+// Dash patterns for series beyond the validated 6-slot palette, cycled by (index - 6) % 3.
+const OVERFLOW_DASH_PATTERNS: number[][] = [
+  [4, 4],
+  [8, 4],
+  [2, 6],
+]
+
 // Target roughly this many year labels across the x-axis; a long horizon skips more years per label
 // so labels never crowd together regardless of chart width.
 const TARGET_YEAR_LABELS = 10
+
+// Clamps a drawdown window to the visible date range: a start before the first date snaps to it,
+// an end after (or missing) snaps to the last date, and a start after the last date omits the window.
+function clampDrawdownWindow(start: string, end: string | null, dates: string[]): [string, string] | null {
+  const first = dates[0]
+  const last = dates[dates.length - 1]
+  if (first === undefined || last === undefined) return null
+  if (start > last) return null
+  const clampedStart = start < first ? first : start
+  const clampedEnd = end === null || end > last ? last : end
+  return [clampedStart, clampedEnd]
+}
+
+// Color assigned to an account series at position i: the validated palette for the first 6 slots,
+// neutral ink beyond that (never cycle hues — see palette.ts).
+function seriesColor(i: number): string {
+  return i < 6 ? SERIES[i]! : INK_FAINT
+}
 
 function baseOption(dates: string[], birthDate: string | null): EChartsOption {
   const startYear = dates.length > 0 ? Number((dates[0] ?? '0').slice(0, 4)) : 0
@@ -62,14 +90,15 @@ export function buildProjectionOption(input: {
   const byDate = new Map(months.map((m) => [m.date, m]))
   const suffix = real ? " (today's $)" : ''
 
+  const clampedDrawdown = input.drawdownStart === null ? null : clampDrawdownWindow(input.drawdownStart, input.drawdownEnd, dates)
+
   const markArea: MarkAreaComponentOption | undefined =
-    input.drawdownStart === null
+    clampedDrawdown === null
       ? undefined
       : {
           silent: true,
-          // COPPER (#b0521a) at 7% opacity
-          itemStyle: { color: 'rgba(176, 82, 26, 0.07)' },
-          data: [[{ xAxis: input.drawdownStart }, { xAxis: input.drawdownEnd ?? dates[dates.length - 1] }]],
+          itemStyle: { color: DRAWDOWN_AREA_COLOR },
+          data: [[{ xAxis: clampedDrawdown[0] }, { xAxis: clampedDrawdown[1] }]],
         }
 
   const markLine: MarkLineComponentOption | undefined =
@@ -125,24 +154,45 @@ export function buildPortfolioOption(input: {
   real: boolean
   stacked: boolean
   birthDate: string | null
+  drawdownWindows: { start: string; end: string | null }[]
 }): EChartsOption {
   const dates = input.total.map((t) => t.date)
   const pick = (m: ProjectionMonth) => (input.real ? m.realBalance : m.balance)
 
-  const accountSeries = input.accounts.map((a, i) => ({
-    name: a.name,
-    type: 'line' as const,
-    data: a.months.map(pick),
-    showSymbol: false,
-    lineStyle: { color: SERIES[i % SERIES.length], width: 2 },
-    itemStyle: { color: SERIES[i % SERIES.length] },
-    ...(input.stacked
-      ? { stack: 'portfolio', areaStyle: { color: SERIES[i % SERIES.length], opacity: 0.35 } }
-      : {}),
-    ...(input.accounts.length <= 4 && !input.stacked
-      ? { endLabel: { show: true, formatter: a.name, color: INK_SOFT, fontSize: 11, fontFamily: 'IBM Plex Mono' } }
-      : {}),
-  }))
+  const clampedWindows = input.drawdownWindows
+    .map((w) => clampDrawdownWindow(w.start, w.end, dates))
+    .filter((w): w is [string, string] => w !== null)
+
+  const markArea: MarkAreaComponentOption | undefined =
+    clampedWindows.length === 0
+      ? undefined
+      : {
+          silent: true,
+          itemStyle: { color: DRAWDOWN_AREA_COLOR },
+          data: clampedWindows.map(([start, end]) => [{ xAxis: start }, { xAxis: end }]),
+        }
+
+  const accountSeries = input.accounts.map((a, i) => {
+    const color = seriesColor(i)
+    const overflow = i >= 6
+    return {
+      name: a.name,
+      type: 'line' as const,
+      data: a.months.map(pick),
+      showSymbol: false,
+      lineStyle: {
+        color,
+        width: 2,
+        ...(overflow ? { type: OVERFLOW_DASH_PATTERNS[(i - 6) % OVERFLOW_DASH_PATTERNS.length] } : {}),
+      },
+      itemStyle: { color },
+      markArea: i === 0 ? markArea : undefined,
+      ...(input.stacked ? { stack: 'portfolio', areaStyle: { color, opacity: overflow ? 0.2 : 0.35 } } : {}),
+      ...(input.accounts.length <= 4 && !input.stacked
+        ? { endLabel: { show: true, formatter: a.name, color: INK_SOFT, fontSize: 11, fontFamily: 'IBM Plex Mono' } }
+        : {}),
+    }
+  })
 
   const totalSeries = input.stacked
     ? []
@@ -157,8 +207,22 @@ export function buildPortfolioOption(input: {
         },
       ]
 
+  const base = baseOption(dates, input.birthDate)
+
   return {
-    ...baseOption(dates, input.birthDate),
+    ...base,
+    tooltip: {
+      ...(base.tooltip as object),
+      formatter: (params: unknown) => {
+        const rows = params as { axisValue?: string; marker?: string; seriesName?: string; value?: number }[]
+        if (!rows || rows.length === 0) return ''
+        const header = rows[0]?.axisValue
+        return [
+          `<strong>${monthLabel(header ?? '')}</strong>`,
+          ...rows.map((p) => `${p.marker ?? ''}${p.seriesName} ${money(p.value ?? 0)}`),
+        ].join('<br/>')
+      },
+    },
     legend: {
       top: 0,
       textStyle: { color: INK_SOFT, fontSize: 12 },

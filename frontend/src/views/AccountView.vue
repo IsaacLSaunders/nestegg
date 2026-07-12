@@ -103,7 +103,7 @@ async function save() {
 
     <div class="layout">
       <div class="panel card">
-        <AccountForm :initial="found.account" @change="draft = $event" @save="save">
+        <AccountForm :initial="found.account" hide-actions @change="draft = $event" @save="save">
         </AccountForm>
       </div>
 
