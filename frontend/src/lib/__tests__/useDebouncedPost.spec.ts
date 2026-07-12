@@ -68,4 +68,34 @@ describe('useDebouncedPost', () => {
     await vi.advanceTimersByTimeAsync(300)
     expect(mockedApi).not.toHaveBeenCalled()
   })
+
+  it('clears state when payload becomes null and ignores in-flight responses', async () => {
+    mockedApi.mockResolvedValueOnce({ v: 1 })
+    const payload = ref<{ v: number } | null>({ v: 1 })
+    const { data, error, pending } = useDebouncedPost<{ v: number }, { v: number }>('/api/projection', payload)
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(300)
+    expect(data.value).toEqual({ v: 1 })
+
+    payload.value = null
+    await nextTick()
+    expect(data.value).toBeNull()
+    expect(error.value).toBe('')
+    expect(pending.value).toBe(false)
+    await vi.advanceTimersByTimeAsync(300)
+    expect(mockedApi).toHaveBeenCalledTimes(1) // no additional call after nulling
+
+    // In-flight response from before the null transition must not repopulate data
+    let resolveSlow!: (v: unknown) => void
+    mockedApi.mockImplementationOnce(() => new Promise((r) => (resolveSlow = r)))
+    payload.value = { v: 2 }
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(300) // request now in flight
+    payload.value = null
+    await nextTick()
+    resolveSlow({ v: 2 })
+    await vi.runAllTimersAsync()
+    expect(data.value).toBeNull()
+    expect(pending.value).toBe(false)
+  })
 })

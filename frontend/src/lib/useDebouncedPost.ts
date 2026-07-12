@@ -11,7 +11,14 @@ export function useDebouncedPost<TReq, TRes>(path: string, payload: Ref<TReq | n
   watch(
     payload,
     (p) => {
-      if (p === null) return
+      if (p === null) {
+        clearTimeout(timer)
+        seq++
+        data.value = null
+        error.value = ''
+        pending.value = false
+        return
+      }
       clearTimeout(timer)
       timer = setTimeout(async () => {
         const mine = ++seq
