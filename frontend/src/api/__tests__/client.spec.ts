@@ -63,6 +63,16 @@ describe('api client', () => {
     expect(handler).toHaveBeenCalledOnce()
   })
 
+  it('skips the unauthorized handler on 401 when silentUnauthorized is set', async () => {
+    const handler = vi.fn()
+    setUnauthorizedHandler(handler)
+    mockFetch(401, { error: 'Authentication required.' })
+    const err = await api('GET', '/api/me', undefined, { silentUnauthorized: true }).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(ApiError)
+    expect((err as ApiError).status).toBe(401)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
   it('falls back to a generic message when the body is not JSON', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, json: () => Promise.reject(new Error('not json')) }))
     const err = await api('GET', '/api/health').catch((e: unknown) => e)
