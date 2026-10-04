@@ -1,0 +1,63 @@
+---
+description: Symfony and PHP conventions for the nestegg backend
+globs: backend/**
+alwaysApply: false
+---
+
+# nestegg backend: Symfony rules
+
+## Versions
+
+- PHP 8.5 (`composer.json` requires `>=8.5`, image `dunglas/frankenphp:1-php8.5`).
+- Symfony 7.4 (`extra.symfony.require: 7.4.*`).
+- Doctrine ORM 3.6, DoctrineBundle 3, DoctrineMigrationsBundle 4.
+- PostgreSQL 16.
+- PHPUnit 13 with DAMA DoctrineTestBundle.
+
+## Conventions
+
+- **Routing:** PHP attributes only. `config/routes.yaml` loads `routing.controllers`. Do not add routes in YAML.
+- **Route attributes:** put the full path, a `name` with the `api_` prefix, and `methods` on each action.
+- **Controllers:** `final` classes in `src/Controller` that extend `ApiController`.
+- **Request input:** map the body to a DTO from `src/Dto` with `#[MapRequestPayload]`. Do not call `json_decode()` in a controller.
+- **Dependency injection:** autowire and autoconfigure are on for all of `src/`. Use constructor promotion with `private readonly` properties. `config/services.yaml` has no manual service entries.
+- **Doctrine mapping:** PHP attributes in `src/Entity`. No XML or YAML mapping.
+- **Schema changes:** generate a migration with `make migration`. Do not use `doctrine:schema:update`.
+- **Class style:** `declare(strict_types=1)` in each file. Classes are `final` or `final readonly`. Entities are the exception.
+- **Messenger:** not installed. Do not add message classes or handlers. Ask before you add the component.
+
+## Where code lives
+
+| Code | Location |
+|------|----------|
+| Controllers | `src/Controller` |
+| Request DTOs | `src/Dto` |
+| Entities | `src/Entity` |
+| Enums | `src/Enum` |
+| Projection logic | `src/Projection` |
+| Repositories | `src/Repository` |
+| Listeners | `src/EventListener` |
+| Security | `src/Security` |
+| Dev fixtures | `src/DataFixtures` |
+| Tests | `tests/` |
+
+## Inspect, do not guess
+
+PHP runs in the `php` container. Start the stack with `make up`. Then run console commands from the repo root.
+Read the output before you state a route name, a service id, or a schema fact.
+
+```bash
+docker compose exec php php bin/console debug:router
+docker compose exec php php bin/console debug:router <route_name>
+docker compose exec php php bin/console debug:container <id>
+docker compose exec php php bin/console debug:autowiring <keyword>
+docker compose exec php php bin/console debug:config <bundle>
+docker compose exec php php bin/console doctrine:schema:validate
+docker compose exec php php bin/console doctrine:mapping:info
+```
+
+## Verify
+
+- `make test` prepares the test database and runs PHPUnit.
+- `make migrate` applies migrations.
+- `make fixtures` loads the dev fixtures.
